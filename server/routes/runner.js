@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import { Router } from 'express';
+import { parseDiscover } from '../lib/discover.js';
 import { RTK_BIN, READONLY } from '../paths.js';
 
 const router = Router();
@@ -136,6 +137,32 @@ router.post('/run', (req, res) => {
         stderr: String(stderr).replace(ANSI, ''),
         error: err && !('code' in err) ? err.message : null,
       });
+    }
+  );
+});
+
+/**
+ * `rtk discover` scans Claude Code history for commands that ran raw when rtk
+ * had a filter for them. Parsed here rather than in the browser so the UI gets
+ * rows it can rank and link, not a wall of fixed-width text.
+ */
+router.get('/discover', (_req, res, next) => {
+  if (READONLY) {
+    return res.status(403).json({ error: 'Command runner disabled (RTKDASH_READONLY=1)' });
+  }
+
+  execFile(
+    RTK_BIN,
+    ['discover'],
+    { timeout: 120_000, maxBuffer: 8 * 1024 * 1024, env: { ...process.env, NO_COLOR: '1' } },
+    (err, stdout, stderr) => {
+      if (err && !stdout) {
+        return next(
+          Object.assign(new Error(`rtk discover failed: ${stderr || err.message}`), { status: 502 })
+        );
+      }
+      const clean = String(stdout).replace(ANSI, '');
+      res.json({ ...parseDiscover(clean), raw: clean });
     }
   );
 });

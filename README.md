@@ -84,6 +84,7 @@ charts are reproducible.
 | **Overview** | KPIs (tokens saved, savings rate, raw→filtered, exec time), tokens-saved-per-day chart with an average savings-rate overlay, command volume, savings by rtk subcommand, and a top-projects list that filters the whole dashboard on click |
 | **History** | Paginated, sortable, searchable command log; expand any row for the original vs. rewritten command, project, and token math. Separate tab for rtk parse failures |
 | **Live** | Server-sent-events feed of commands as rtk records them, with a running total for the session |
+| **Discover** | Parses `rtk discover` into a ranked table of commands that ran raw when rtk already had a filter for them, plus frequent commands rtk has no filter for yet. The one view that tells you what to change rather than what happened |
 | **Tools** | Runs allowlisted `rtk` subcommands and renders their output |
 | **Config** | Edits `config.toml` / `filters.toml` with live TOML validation and automatic backups |
 
@@ -286,10 +287,12 @@ There is no authentication, no user model, and no audit log. Anyone who reaches 
 ```
 server/            Express API — plain ESM, no build step
   paths.js         Env-driven paths, ports, allowlists
+  app.js           Express app factory, kept separate from the listener
+  lib/discover.js  Parser for `rtk discover` fixed-width output
   db.js            Read-only SQLite queries + shared filter builder
   routes/
     stats.js       summary, timeseries, projects, tools, commands, failures
-    runner.js      Allowlisted rtk subcommand execution
+    runner.js      Allowlisted rtk subcommand execution, plus /api/discover
     config.js      TOML read/validate/write with backups
     stream.js      SSE live tail
 scripts/
@@ -299,7 +302,7 @@ web/src/
   api.ts           Typed client and the shared filter type
   hooks.ts         useAsync, useLiveStream, useStored
   components/      UI primitives, charts, filter bar
-  pages/           Overview, History, Live, Tools, ConfigEditor
+  pages/           Overview, History, Live, Discover, Tools, ConfigEditor
 contrib/           systemd unit
 ```
 

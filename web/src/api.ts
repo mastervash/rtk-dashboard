@@ -114,6 +114,26 @@ export type ConfigFile = {
 
 export type ConfigBundle = { dir: string; readonly: boolean; files: ConfigFile[] };
 
+export type DiscoverReport = {
+  scanned: {
+    sessions: number | null;
+    days: number | null;
+    bashCommands: number | null;
+    alreadyUsingRtk: number | null;
+    alreadyUsingPct: number | null;
+  };
+  missed: {
+    command: string;
+    count: number;
+    rtkEquivalent: string;
+    status: string | null;
+    savedTokens: number | null;
+  }[];
+  unhandled: { command: string; count: number; example: string | null }[];
+  totals: { commands: number | null; tokens: number | null };
+  raw: string;
+};
+
 function qs(filter: Partial<Filter> & Record<string, unknown>) {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(filter)) {
@@ -157,6 +177,7 @@ export const api = {
   failures: (limit = 100, offset = 0) =>
     get<Page<FailureRow>>(`/failures${qs({ limit, offset })}`),
   catalog: () => get<Catalog>('/catalog'),
+  discover: () => get<DiscoverReport>('/discover'),
   run: (command: string, args: string[], cwd?: string) =>
     send<RunResult>('POST', '/run', { command, args, cwd }),
   config: () => get<ConfigBundle>('/config'),

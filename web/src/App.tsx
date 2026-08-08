@@ -1,4 +1,4 @@
-import { Activity, LayoutDashboard, ListTree, Radio, Settings2, Terminal } from 'lucide-react';
+import { Activity, LayoutDashboard, ListTree, Radio, Settings2, Sparkles, Terminal } from 'lucide-react';
 import type { Filter } from './api';
 import { EMPTY_FILTER, api } from './api';
 import { useAsync, useLiveStream, useStored } from './hooks';
@@ -7,15 +7,17 @@ import { History } from './pages/History';
 import { Tools } from './pages/Tools';
 import { ConfigEditor } from './pages/ConfigEditor';
 import { Live } from './pages/Live';
+import { Discover } from './pages/Discover';
 import { cx } from './components/ui';
 import { bytes, relativeTime } from './lib/format';
 
-type Tab = 'overview' | 'history' | 'live' | 'tools' | 'config';
+type Tab = 'overview' | 'history' | 'live' | 'discover' | 'tools' | 'config';
 
 const NAV: { id: Tab; label: string; icon: typeof Activity }[] = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'history', label: 'History', icon: ListTree },
   { id: 'live', label: 'Live', icon: Radio },
+  { id: 'discover', label: 'Discover', icon: Sparkles },
   { id: 'tools', label: 'Tools', icon: Terminal },
   { id: 'config', label: 'Config', icon: Settings2 },
 ];
@@ -109,6 +111,7 @@ export default function App() {
           />
         )}
         {tab === 'live' && <Live live={live} enabled={liveEnabled} onToggle={setLiveEnabled} />}
+        {tab === 'discover' && <Discover />}
         {tab === 'tools' && <Tools facets={facets.data} />}
         {tab === 'config' && <ConfigEditor />}
       </main>
