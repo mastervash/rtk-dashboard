@@ -1,5 +1,15 @@
+import { execFileSync } from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { parseDiscover, parseTokenCount } from '../server/lib/discover.js';
+
+const FAKE_RTK = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '..',
+  'scripts',
+  'fake-rtk.mjs'
+);
 
 /** Verbatim shape of `rtk discover` output, with the values changed. */
 const SAMPLE = `RTK Discover -- Savings Opportunities
@@ -102,6 +112,31 @@ describe('parseDiscover', () => {
       const out = parseDiscover(input);
       expect(out.missed).toEqual([]);
       expect(out.unhandled).toEqual([]);
+    }
+  });
+
+  /**
+   * The demo stub doubles as a fixture. If someone edits its report into a
+   * shape the parser cannot read, the demo silently renders an empty table —
+   * this catches that.
+   */
+  it('parses the output of scripts/fake-rtk.mjs', () => {
+    const stdout = execFileSync(process.execPath, [FAKE_RTK, 'discover'], { encoding: 'utf8' });
+    const out = parseDiscover(stdout);
+
+    expect(out.missed.length).toBeGreaterThan(5);
+    expect(out.unhandled.length).toBeGreaterThan(3);
+    expect(out.totals.tokens).toBeGreaterThan(0);
+    expect(out.scanned.sessions).toBeGreaterThan(0);
+    expect(out.scanned.alreadyUsingPct).toBeGreaterThan(0);
+
+    for (const row of out.missed) {
+      expect(row.command).toBeTruthy();
+      expect(row.rtkEquivalent).toMatch(/^rtk /);
+      expect(row.savedTokens).toBeGreaterThan(0);
+    }
+    for (const row of out.unhandled) {
+      expect(row.example).toBeTruthy();
     }
   });
 

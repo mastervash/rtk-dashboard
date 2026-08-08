@@ -5,9 +5,13 @@
  *
  *   node scripts/seed-demo.mjs [target-dir]     # default: ./demo
  *
- * Then point the server at it:
+ * Then point the server at it. Adding the fake rtk binary also makes the Tools
+ * and Discover views work without rtk installed:
  *
- *   RTKDASH_DB=demo/history.db RTKDASH_CONFIG_DIR=demo/config npm start
+ *   RTKDASH_DB=demo/history.db \
+ *   RTKDASH_CONFIG_DIR=demo/config \
+ *   RTKDASH_RTK_BIN=./scripts/fake-rtk.mjs \
+ *   npm start
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -239,4 +243,10 @@ max_depth = 3
 const total = db.prepare('SELECT SUM(saved_tokens) AS n FROM commands').get().n;
 console.log(`seeded ${rows} commands (${total.toLocaleString()} tokens saved) -> ${dbPath}`);
 console.log(`config -> ${configDir}`);
+console.log('');
+console.log('Run against it with:');
+console.log(`  RTKDASH_DB=${dbPath} \\`);
+console.log(`  RTKDASH_CONFIG_DIR=${configDir} \\`);
+console.log('  RTKDASH_RTK_BIN=./scripts/fake-rtk.mjs \\');
+console.log('  npm start');
 db.close();
