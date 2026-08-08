@@ -1,0 +1,37 @@
+[Unit]
+Description=rtkdash — web dashboard for rtk token savings
+Documentation=https://github.com/mastervash/rtk-dashboard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+
+# Absolute path to your rtkdash checkout. Run `npm run build` there first.
+WorkingDirectory=%h/rtkdash
+ExecStart=/usr/bin/env node server/index.js
+
+# Loopback is the safe default. Point this at a Docker bridge gateway only if
+# an authenticating reverse proxy runs in a container on that network.
+Environment=RTKDASH_HOST=127.0.0.1
+Environment=RTKDASH_API_PORT=5178
+
+# Public origin(s) served by the reverse proxy. Without this, POST/PUT from a
+# proxied browser session are rejected as cross-origin.
+#Environment=RTKDASH_ALLOWED_ORIGINS=https://rtk.example.com
+#Environment=RTKDASH_TRUST_PROXY=loopback
+
+# Uncomment to disable the command runner and config editing.
+#Environment=RTKDASH_READONLY=1
+
+Restart=on-failure
+RestartSec=5
+
+# rtkdash needs to read ~/.local/share/rtk and run the rtk binary, so it is not
+# sandboxed away from the home directory. These limits still apply.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=default.target
