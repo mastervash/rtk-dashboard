@@ -1,0 +1,136 @@
+name: Publish container image
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+
+    permissions:
+      contents: read
+      packages: write
+      # Required to attach a signed build provenance attestation.
+      id-token: write
+      attestations: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # arm64 layers that cannot be cross-compiled fall back to emulation.
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Derive tags and labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,format=short
+          labels: |
+            org.opencontainers.image.title=rtkdash
+            org.opencontainers.image.description=Web dashboard for rtk (Rust Token Killer) token savings analytics
+            org.opencontainers.image.licenses=MIT
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: true
+          sbom: true
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+      # A container published by GITHUB_TOKEN starts private. Match it to the
+      # repository so people can actually pull it.
+      - name: Make the package public
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api -X PATCH \
+            "/user/packages/container/${GITHUB_REPOSITORY##*/}" \
+            -f visibility=public || \
+          echo "Could not set visibility automatically — do it once in Settings > Packages."
+
+  verify:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Pull the published image and check it serves
+        env:
+          DIGEST: ${{ needs.publish.outputs.digest }}
+        run: |
+          set -euo pipefail
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+          # By digest, so this verifies exactly what was just pushed.
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}@${DIGEST}"
+          docker pull "$IMAGE"
+
+          # Seed inside the container — it proves the image's own node_modules
+          # and native better-sqlite3 binding actually load on this platform.
+          mkdir -p /tmp/demo && chmod 777 /tmp/demo
+          docker run --rm -u "$(id -u):$(id -g)" -v /tmp/demo:/demo "$IMAGE" \
+            node scripts/seed-demo.mjs /demo
+
+          docker run -d --name rtkdash-verify \
+            -v /tmp/demo/history.db:/data/history.db:ro \
+            -v /tmp/demo/config:/config:ro \
+            -p 127.0.0.1:5178:5178 \
+            -u "$(id -u):$(id -g)" \
+            "$IMAGE"
+
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:5178/api/summary >/dev/null && break
+            sleep 2
+          done
+
+          echo "--- summary"
+          curl -sf http://127.0.0.1:5178/api/summary | head -c 300; echo
+          echo "--- spa"
+          curl -sf -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5178/
+          echo "--- runner must be disabled by default"
+          curl -sf -X POST http://127.0.0.1:5178/api/run \
+            -H 'content-type: application/json' -d '{"command":"gain"}' \
+            -o /dev/null -w '%{http_code}\n' || true
+
+          docker logs rtkdash-verify
+          docker rm -f rtkdash-verify

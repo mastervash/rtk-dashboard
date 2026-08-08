@@ -1,9 +1,12 @@
 services:
   rtkdash:
-    build: .
-    image: rtkdash:latest
+    # Prebuilt multi-arch image (linux/amd64, linux/arm64). Swap the tag for a
+    # release like :0.1.0 to pin, or uncomment `build:` to build from source.
+    image: ghcr.io/mastervash/rtk-dashboard:latest
+    #build: .
     container_name: rtkdash
     restart: unless-stopped
+    pull_policy: always
 
     environment:
       # Public origin your reverse proxy serves this on. Without it, the

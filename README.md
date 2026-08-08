@@ -1,6 +1,8 @@
 # rtkdash
 
 [![CI](https://github.com/mastervash/rtk-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/mastervash/rtk-dashboard/actions/workflows/ci.yml)
+[![Publish](https://github.com/mastervash/rtk-dashboard/actions/workflows/publish.yml/badge.svg)](https://github.com/mastervash/rtk-dashboard/actions/workflows/publish.yml)
+[![ghcr.io](https://img.shields.io/badge/ghcr.io-rtk--dashboard-34d399?logo=docker&logoColor=white)](https://github.com/mastervash/rtk-dashboard/pkgs/container/rtk-dashboard)
 
 A web dashboard for [rtk](https://github.com/rtk-ai/rtk) (Rust Token Killer) — token savings analytics, a live command feed, an allowlisted command runner, and a TOML config editor.
 
@@ -131,11 +133,34 @@ One note on the numbers: the headline savings rate is token-weighted (`saved / i
 
 ## Docker
 
+A prebuilt multi-arch image (`linux/amd64`, `linux/arm64`) is published to GHCR
+on every push to `main`, so there is nothing to build:
+
 ```bash
-docker compose up -d --build
+docker run -d --name rtkdash \
+  -v ~/.local/share/rtk/history.db:/data/history.db:ro \
+  -v ~/.config/rtk:/config:ro \
+  -u "$(id -u):$(id -g)" \
+  -p 127.0.0.1:5178:5178 \
+  ghcr.io/mastervash/rtk-dashboard:latest
+```
+
+Or with compose, which already has the mounts and the proxy-network option
+wired up:
+
+```bash
+docker compose up -d
 ```
 
 Then open http://127.0.0.1:5178.
+
+Tags: `latest` tracks `main`, `sha-<short>` pins an exact commit, and `X.Y.Z` /
+`X.Y` appear for tagged releases. Images carry a signed build provenance
+attestation, verifiable with:
+
+```bash
+gh attestation verify oci://ghcr.io/mastervash/rtk-dashboard:latest --repo mastervash/rtk-dashboard
+```
 
 The image mounts rtk's history database read-only and defaults to
 `RTKDASH_READONLY=1`. **Analytics, live tail, and the config viewer all work.

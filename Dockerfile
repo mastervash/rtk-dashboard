@@ -1,22 +1,30 @@
 # syntax=docker/dockerfile:1
 
-# better-sqlite3 is a native module, so the build stage needs a toolchain that
-# the runtime stage does not.
-FROM node:22-bookworm-slim AS build
-WORKDIR /app
+ARG NODE_VERSION=22
 
+# The SPA build is architecture-independent, so pin it to the builder's native
+# platform. Running tsc and vite under QEMU for an arm64 target would dominate
+# the build time for no benefit.
+FROM --platform=$BUILDPLATFORM node:${NODE_VERSION}-bookworm-slim AS web
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+# Runtime dependencies do have to match the target architecture: better-sqlite3
+# is a native module. It ships prebuilds for linux x64 and arm64, so this is a
+# download rather than a compile; the toolchain is only a fallback.
+FROM node:${NODE_VERSION}-bookworm-slim AS deps
+WORKDIR /app
 RUN apt-get update \
  && apt-get install -y --no-install-recommends python3 make g++ \
  && rm -rf /var/lib/apt/lists/*
-
 COPY package.json package-lock.json ./
-RUN npm ci
-
-COPY . .
-RUN npm run build && npm prune --omit=dev
+RUN npm ci --omit=dev
 
 
-FROM node:22-bookworm-slim AS runtime
+FROM node:${NODE_VERSION}-bookworm-slim AS runtime
 WORKDIR /app
 
 ENV NODE_ENV=production \
@@ -28,11 +36,11 @@ ENV NODE_ENV=production \
     # See the Docker section of the README before changing this.
     RTKDASH_READONLY=1
 
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/dist ./dist
-COPY --from=build /app/server ./server
-COPY --from=build /app/scripts ./scripts
-COPY --from=build /app/package.json ./
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=web /app/dist ./dist
+COPY server ./server
+COPY scripts ./scripts
+COPY package.json ./
 
 # The mounted history database belongs to the host user that runs rtk. Override
 # with `user:` in compose when that uid is not 1000.
