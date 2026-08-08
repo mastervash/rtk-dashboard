@@ -5,8 +5,15 @@ const router = Router();
 
 /** Pull the shared filter params off a request. */
 function filterOf(req) {
-  const { days, project, tool, q } = req.query;
-  return { days, project: project === '(unknown)' ? '' : project, tool, q };
+  const { days, project, tool, q, tzOffset } = req.query;
+  return {
+    days,
+    // The UI labels rows with no recorded project as "(unknown)".
+    project: project === '(unknown)' ? '' : project,
+    tool,
+    q,
+    tzOffset,
+  };
 }
 
 function num(v, fallback) {

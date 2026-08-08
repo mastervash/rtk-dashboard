@@ -146,7 +146,10 @@ export const api = {
   meta: () => get<Meta>('/meta'),
   facets: () => get<Facets>('/facets'),
   summary: (f: Filter) => get<Summary>(`/summary${qs(f)}`),
-  timeseries: (f: Filter) => get<DayPoint[]>(`/timeseries${qs(f)}`),
+  // Day buckets are computed server-side, so the server needs the viewer's
+  // offset or evening commands land on the wrong day.
+  timeseries: (f: Filter) =>
+    get<DayPoint[]>(`/timeseries${qs({ ...f, tzOffset: new Date().getTimezoneOffset() })}`),
   projects: (f: Filter, limit = 20) => get<ProjectRow[]>(`/projects${qs({ ...f, limit })}`),
   tools: (f: Filter, limit = 20) => get<ToolRow[]>(`/tools${qs({ ...f, limit })}`),
   commands: (f: Filter, opts: { limit?: number; offset?: number; sort?: string; dir?: string } = {}) =>

@@ -1,0 +1,12 @@
+node_modules
+dist
+demo
+.git
+.github
+docs
+tests
+.env
+*.log
+*.tsbuildinfo
+compose.yaml
+Dockerfile

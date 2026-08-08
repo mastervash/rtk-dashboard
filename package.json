@@ -11,7 +11,10 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "start": "NODE_ENV=production node server/index.js",
-    "typecheck": "tsc -b --noEmit"
+    "typecheck": "tsc -b --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "seed": "node scripts/seed-demo.mjs"
   },
   "dependencies": {
     "better-sqlite3": "^11.10.0",
@@ -29,8 +32,10 @@
     "@vitejs/plugin-react": "^4.4.1",
     "concurrently": "^9.1.2",
     "lucide-react": "^0.511.0",
+    "supertest": "^7.2.2",
     "tailwindcss": "^4.1.7",
     "typescript": "^5.8.3",
-    "vite": "^6.3.5"
+    "vite": "^6.3.5",
+    "vitest": "^4.1.10"
   }
 }

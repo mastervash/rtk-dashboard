@@ -1,5 +1,7 @@
 # rtkdash
 
+[![CI](https://github.com/mastervash/rtk-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/mastervash/rtk-dashboard/actions/workflows/ci.yml)
+
 A web dashboard for [rtk](https://github.com/rtk-ai/rtk) (Rust Token Killer) — token savings analytics, a live command feed, an allowlisted command runner, and a TOML config editor.
 
 rtk already records every filtered command to a local SQLite database. rtkdash reads that database and gives you the parts `rtk gain` can't show in a terminal: savings trends over time, which subcommands actually earn their keep, per-project breakdowns, and a searchable history you can drill into.
@@ -112,6 +114,50 @@ Everything comes from rtk's own storage — rtkdash collects nothing of its own.
 The database is opened **read-only**. The Config editor is the only thing that writes, and only to those two files.
 
 One note on the numbers: the headline savings rate is token-weighted (`saved / input`), which is what `rtk gain` reports. The unweighted mean of per-command percentages appears underneath it. The two can differ substantially — a handful of large `vitest` or `docker` runs dominate the weighted figure while hundreds of tiny `grep` calls dominate the unweighted one.
+
+## Docker
+
+```bash
+docker compose up -d --build
+```
+
+Then open http://127.0.0.1:5178.
+
+The image mounts rtk's history database read-only and defaults to
+`RTKDASH_READONLY=1`. **Analytics, live tail, and the config viewer all work.
+The Tools runner does not** — the `rtk` binary is not in the image, and even
+with it added, the project paths recorded in the database are host paths that
+do not exist in the container, so `--project` scoping would silently target the
+wrong thing. Run rtkdash on the host if you want the runner.
+
+To enable the config editor, drop `:ro` from the `/config` mount and set
+`RTKDASH_READONLY=0`.
+
+**File ownership matters.** The database belongs to whichever host user runs
+rtk. The compose file passes `${UID}:${GID}`, but your shell may not export
+those — either export them or hardcode the uid:
+
+```bash
+UID="$(id -u)" GID="$(id -g)" docker compose up -d
+```
+
+### With a containerized reverse proxy
+
+This is the tidiest deployment. Uncomment the `networks` blocks in
+`compose.yaml` to join the proxy's existing network:
+
+```yaml
+networks:
+  proxy:
+    external: true
+    name: nginxproxymanager_default
+```
+
+The proxy then reaches rtkdash at `http://rtkdash:5178` by container name. No
+host firewall rule, no bridge gateway address, and nothing that breaks when
+Docker reassigns a subnet — all three problems the host-install path below has
+to work around. Delete the `ports:` block so the port is not also published on
+the host.
 
 ## Running behind a reverse proxy
 
@@ -248,6 +294,7 @@ server/            Express API — plain ESM, no build step
     stream.js      SSE live tail
 scripts/
   seed-demo.mjs    Generates a synthetic history database
+tests/             Vitest suite over the API and the runner allowlist
 web/src/
   api.ts           Typed client and the shared filter type
   hooks.ts         useAsync, useLiveStream, useStored
@@ -256,14 +303,31 @@ web/src/
 contrib/           systemd unit
 ```
 
-## Contributing
-
-Issues and PRs are welcome. Before opening a PR:
+## Development
 
 ```bash
+npm test           # vitest, API-level
 npm run typecheck
 npm run build
+npm run seed       # synthetic database in ./demo
 ```
+
+The test suite runs against throwaway SQLite fixtures built with the real rtk
+schema — no mocking of the database layer. The two areas with the heaviest
+coverage are the ones where a regression does actual damage: the command
+runner's allowlist (argument rejection, shell metacharacters, destructive
+flags, readonly mode) and the config editor's path scoping. CI runs the whole
+thing on Node 20 and 22, plus a smoke test that boots the server against a
+seeded database and checks that the API and SPA both respond.
+
+## Contributing
+
+Issues and PRs are welcome. `npm test && npm run typecheck && npm run build`
+should pass before you open one.
+
+If you touch `server/routes/runner.js`, add tests. That file is the boundary
+between browser input and process execution, and it is the one place in this
+codebase where a mistake is a security bug rather than a rendering glitch.
 
 ## License
 

@@ -1,0 +1,43 @@
+services:
+  rtkdash:
+    build: .
+    image: rtkdash:latest
+    container_name: rtkdash
+    restart: unless-stopped
+
+    environment:
+      # Public origin your reverse proxy serves this on. Without it, the
+      # browser's POST/PUT requests are rejected as cross-origin.
+      #RTKDASH_ALLOWED_ORIGINS: https://rtk.example.com
+      RTKDASH_TRUST_PROXY: loopback
+
+      # The rtk binary is not in the image, so the Tools runner is unavailable
+      # and this stays at 1. Config editing needs it at 0 plus a writable
+      # /config mount.
+      RTKDASH_READONLY: 1
+
+    volumes:
+      # rtk's history database, read-only. This is the only thing rtkdash needs.
+      - ${HOME}/.local/share/rtk/history.db:/data/history.db:ro
+      # Drop the :ro and set RTKDASH_READONLY=0 to enable the config editor.
+      - ${HOME}/.config/rtk:/config:ro
+
+    # The database file is owned by the host user that runs rtk. Match that uid
+    # or the container cannot read it.
+    user: "${UID:-1000}:${GID:-1000}"
+
+    # Published only on loopback. Delete this and use the proxy network below
+    # when a containerized reverse proxy fronts it.
+    ports:
+      - "127.0.0.1:5178:5178"
+
+    # Joining the proxy's own network is the tidiest option: the proxy reaches
+    # rtkdash at http://rtkdash:5178 by container name, with no host firewall
+    # rule and no dependency on a bridge gateway address.
+    #networks:
+    #  - proxy
+
+#networks:
+#  proxy:
+#    external: true
+#    name: nginxproxymanager_default

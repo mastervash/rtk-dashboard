@@ -46,8 +46,32 @@ const TOOL_EXPR = `
     ELSE rtk_cmd
   END`;
 
-/** Day bucket in UTC — timestamps are stored as RFC3339 with a +00:00 offset. */
-const DAY_EXPR = `substr(timestamp, 1, 10)`;
+/**
+ * Day bucket shifted into the viewer's timezone. rtk stores RFC3339 in UTC, so
+ * bucketing on the raw string attributes an evening command to the next day for
+ * anyone west of UTC. The offset is the browser's `getTimezoneOffset()`, i.e.
+ * positive west of UTC, which is why the modifier negates it.
+ *
+ * The nanosecond fraction and trailing offset are trimmed first because
+ * SQLite's date functions reject them.
+ */
+const DAY_EXPR = `substr(datetime(substr(timestamp, 1, 19), ?), 1, 10)`;
+
+function tzModifier(tzOffset) {
+  const minutes = Number(tzOffset);
+  return `${Number.isFinite(minutes) ? -Math.trunc(minutes) : 0} minutes`;
+}
+
+const DAY_MS = 86_400_000;
+
+/** Every ISO date from `start` to `end` inclusive. */
+function dateRange(start, end) {
+  const days = [];
+  for (let t = Date.parse(`${start}T00:00:00Z`); t <= Date.parse(`${end}T00:00:00Z`); t += DAY_MS) {
+    days.push(new Date(t).toISOString().slice(0, 10));
+  }
+  return days;
+}
 
 /**
  * Builds the shared WHERE clause from query params.
@@ -63,8 +87,12 @@ export function buildFilter(f = {}) {
     where.push('timestamp >= ?');
     params.push(since);
   }
-  if (f.project) {
-    // Match the project and anything nested beneath it.
+  if (f.project === '') {
+    // The UI's "(unknown)" bucket — rows rtk recorded without a project.
+    where.push("project_path = ''");
+  } else if (f.project) {
+    // Match the project and anything nested beneath it. The trailing slash
+    // keeps `/home/dev/we` from matching `/home/dev/web`.
     where.push('(project_path = ? OR project_path LIKE ?)');
     params.push(String(f.project), `${String(f.project)}/%`);
   }
@@ -109,7 +137,9 @@ export function summary(filter) {
 
 export function timeseries(filter) {
   const { clause, params } = buildFilter(filter);
-  return getDb()
+  const tz = tzModifier(filter?.tzOffset);
+
+  const rows = getDb()
     .prepare(
       `SELECT ${DAY_EXPR}                 AS day,
               COUNT(*)                    AS commands,
@@ -121,7 +151,25 @@ export function timeseries(filter) {
         GROUP BY day
         ORDER BY day ASC`
     )
-    .all(...params);
+    // The DAY_EXPR placeholder sits in the SELECT list, ahead of the WHERE.
+    .all(tz, ...params);
+
+  if (rows.length === 0) return rows;
+
+  // Days with no activity are absent from a GROUP BY, which would compress an
+  // idle week into a single narrow gap and overstate the trend. Fill them.
+  const byDay = new Map(rows.map((r) => [r.day, r]));
+  return dateRange(rows[0].day, rows[rows.length - 1].day).map(
+    (day) =>
+      byDay.get(day) ?? {
+        day,
+        commands: 0,
+        inputTokens: 0,
+        outputTokens: 0,
+        savedTokens: 0,
+        avgSavingsPct: 0,
+      }
+  );
 }
 
 export function projects(filter, limit = 50) {
