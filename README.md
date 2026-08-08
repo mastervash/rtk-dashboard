@@ -155,8 +155,11 @@ docker compose up -d
 Then open http://127.0.0.1:5178.
 
 Tags: `latest` tracks `main`, `sha-<short>` pins an exact commit, and `X.Y.Z` /
-`X.Y` appear for tagged releases. Images carry a signed build provenance
-attestation, verifiable with:
+`X.Y` appear for tagged releases.
+
+Every image carries an SBOM and a signed build provenance attestation, so you
+can confirm it was built by this repository's workflow rather than uploaded by
+hand (needs `gh` 2.49 or newer):
 
 ```bash
 gh attestation verify oci://ghcr.io/mastervash/rtk-dashboard:latest --repo mastervash/rtk-dashboard
