@@ -6,25 +6,24 @@ A web dashboard for [rtk](https://github.com/rtk-ai/rtk) (Rust Token Killer) —
 
 rtk already records every filtered command to a local SQLite database. rtkdash reads that database and gives you the parts `rtk gain` can't show in a terminal: savings trends over time, which subcommands actually earn their keep, per-project breakdowns, and a searchable history you can drill into.
 
-![Overview](docs/screenshots/01-overview.png)
+<p align="center">
+  <img src="docs/showcase.webp" alt="rtkdash walkthrough: Overview, History, Discover, Live, Tools, and Config views" width="100%">
+</p>
+
+<p align="center">
+  <a href="https://mastervash.github.io/rtk-dashboard/"><b>Browse the screenshots →</b></a>
+</p>
 
 <details>
-<summary>More screenshots</summary>
+<summary><b>Or view them here</b></summary>
 
-**History** — searchable, sortable, expandable per-command detail
-![History](docs/screenshots/02-history.png)
+<br>
 
-**Live** — SSE feed of commands as they run
-![Live](docs/screenshots/03-live.png)
-
-**Discover** — commands that ran raw when rtk already had a filter for them
-![Discover](docs/screenshots/06-discover.png)
-
-**Tools** — allowlisted rtk subcommand runner
-![Tools](docs/screenshots/04-tools.png)
-
-**Config** — TOML editor with validation and backups
-![Config](docs/screenshots/05-config.png)
+| | |
+|---|---|
+| **Overview** — KPIs, savings trend, per-project and per-subcommand breakdowns<br><img src="docs/screenshots/01-overview.png" alt="Overview"> | **History** — searchable, sortable, expandable per-command detail<br><img src="docs/screenshots/02-history.png" alt="History"> |
+| **Discover** — commands that ran raw when rtk already had a filter<br><img src="docs/screenshots/06-discover.png" alt="Discover"> | **Live** — SSE feed of commands as they run<br><img src="docs/screenshots/03-live.png" alt="Live"> |
+| **Tools** — allowlisted rtk subcommand runner<br><img src="docs/screenshots/04-tools.png" alt="Tools"> | **Config** — TOML editor with validation and backups<br><img src="docs/screenshots/05-config.png" alt="Config"> |
 
 </details>
 
@@ -312,6 +311,11 @@ server/            Express API — plain ESM, no build step
 scripts/
   seed-demo.mjs    Generates a synthetic history database
   fake-rtk.mjs     Stand-in for the rtk binary, for demos and screenshots
+  make-showcase.mjs  Builds the animated slideshow used in this README
+docs/
+  index.html       Screenshot carousel published via GitHub Pages
+  screenshots/     Source PNGs
+  showcase.webp    Generated animation
 tests/             Vitest suite over the API and the runner allowlist
 web/src/
   api.ts           Typed client and the shared filter type
@@ -328,7 +332,14 @@ npm test           # vitest, API-level
 npm run typecheck
 npm run build
 npm run seed       # synthetic database in ./demo
+npm run showcase   # rebuild docs/showcase.webp from docs/screenshots
 ```
+
+`npm run showcase` regenerates the animated slideshow in the README from
+whatever PNGs are in `docs/screenshots`. The interactive version — dots,
+arrows, keyboard navigation — is `docs/index.html`, served by GitHub Pages;
+GitHub's README renderer strips scripts and styles, which is why there are two
+of them.
 
 The test suite runs against throwaway SQLite fixtures built with the real rtk
 schema — no mocking of the database layer. The two areas with the heaviest

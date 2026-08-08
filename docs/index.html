@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>rtkdash — screenshots</title>
+    <meta
+      name="description"
+      content="Screenshots of rtkdash, a web dashboard for rtk (Rust Token Killer) token savings analytics."
+    />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>%E2%9A%A1</text></svg>" />
+    <style>
+      :root {
+        --surface: #08090b;
+        --panel: #101216;
+        --panel-2: #16191f;
+        --line: #22262e;
+        --fg: #e7e9ec;
+        --muted: #8b93a1;
+        --faint: #5a616e;
+        --accent: #34d399;
+        color-scheme: dark;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--surface);
+        color: var(--fg);
+        font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 2.5rem 1.25rem 3rem;
+        gap: 1.75rem;
+      }
+
+      header {
+        text-align: center;
+        max-width: 46rem;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.6rem;
+        font-size: 1.35rem;
+        font-weight: 650;
+        letter-spacing: -0.02em;
+      }
+
+      .mark {
+        display: grid;
+        place-items: center;
+        width: 1.9rem;
+        height: 1.9rem;
+        border-radius: 0.5rem;
+        background: color-mix(in oklab, var(--accent) 16%, transparent);
+        color: var(--accent);
+      }
+
+      .tagline {
+        margin: 0.6rem 0 0;
+        color: var(--muted);
+        font-size: 0.9rem;
+        line-height: 1.6;
+      }
+
+      .links {
+        margin-top: 1rem;
+        display: flex;
+        gap: 0.5rem;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .links a {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        border: 1px solid var(--line);
+        border-radius: 0.5rem;
+        padding: 0.45rem 0.8rem;
+        font-size: 0.78rem;
+        color: var(--muted);
+        text-decoration: none;
+        transition: border-color 0.15s, color 0.15s;
+      }
+
+      .links a:hover,
+      .links a:focus-visible {
+        border-color: var(--faint);
+        color: var(--fg);
+      }
+
+      /* Carousel ------------------------------------------------------- */
+
+      .carousel {
+        width: min(100%, 1200px);
+        display: flex;
+        flex-direction: column;
+        gap: 0.9rem;
+      }
+
+      .frame {
+        position: relative;
+        border: 1px solid var(--line);
+        border-radius: 0.85rem;
+        background: var(--panel);
+        overflow: hidden;
+      }
+
+      /* The track scrolls horizontally; scroll-snap makes swipe and the dot
+         buttons land exactly on a slide without any JS animation code. */
+      .track {
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        scroll-behavior: smooth;
+        scrollbar-width: thin;
+        scrollbar-color: var(--line) transparent;
+      }
+
+      .track::-webkit-scrollbar {
+        height: 6px;
+      }
+      .track::-webkit-scrollbar-thumb {
+        background: var(--line);
+        border-radius: 3px;
+      }
+
+      /* The screenshots are tall. Capping the slide height keeps the dots and
+         caption above the fold, which is the whole point of having them. */
+      .slide {
+        flex: 0 0 100%;
+        scroll-snap-align: center;
+        display: grid;
+        place-items: center;
+        height: min(66vh, 780px);
+      }
+
+      .slide img {
+        display: block;
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+      }
+
+      .nav {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        display: grid;
+        place-items: center;
+        width: 2.4rem;
+        height: 2.4rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: color-mix(in oklab, var(--surface) 78%, transparent);
+        backdrop-filter: blur(6px);
+        color: var(--fg);
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.18s, border-color 0.15s;
+      }
+
+      .frame:hover .nav,
+      .nav:focus-visible {
+        opacity: 1;
+      }
+
+      .nav:hover {
+        border-color: var(--faint);
+      }
+
+      .nav.prev {
+        left: 0.75rem;
+      }
+      .nav.next {
+        right: 0.75rem;
+      }
+
+      .progress {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        height: 2px;
+        width: 0;
+        background: var(--accent);
+        opacity: 0.85;
+      }
+
+      /* Controls ------------------------------------------------------- */
+
+      .controls {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+
+      .caption {
+        min-width: 0;
+        font-size: 0.82rem;
+        color: var(--muted);
+      }
+
+      .caption b {
+        color: var(--fg);
+        font-weight: 600;
+      }
+
+      .dots {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+      }
+
+      .dot {
+        width: 0.55rem;
+        height: 0.55rem;
+        padding: 0;
+        border: 0;
+        border-radius: 999px;
+        background: var(--line);
+        cursor: pointer;
+        transition: background 0.15s, width 0.15s;
+      }
+
+      .dot:hover {
+        background: var(--faint);
+      }
+
+      .dot[aria-current='true'] {
+        width: 1.5rem;
+        background: var(--accent);
+      }
+
+      .playToggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        margin-left: 0.35rem;
+        border: 1px solid var(--line);
+        border-radius: 0.4rem;
+        background: transparent;
+        color: var(--muted);
+        font-size: 0.72rem;
+        padding: 0.3rem 0.55rem;
+        cursor: pointer;
+      }
+
+      .playToggle:hover {
+        border-color: var(--faint);
+        color: var(--fg);
+      }
+
+      footer {
+        color: var(--faint);
+        font-size: 0.72rem;
+        text-align: center;
+        max-width: 40rem;
+        line-height: 1.6;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .track {
+          scroll-behavior: auto;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>
+      <div class="brand">
+        <span class="mark" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+          </svg>
+        </span>
+        rtkdash
+      </div>
+      <p class="tagline">
+        A web dashboard for <a href="https://github.com/rtk-ai/rtk" style="color: var(--accent)">rtk</a> —
+        token savings analytics, a live command feed, an allowlisted command runner, and a TOML
+        config editor. Every screenshot below uses synthetic data.
+      </p>
+      <div class="links">
+        <a href="https://github.com/mastervash/rtk-dashboard">Source on GitHub</a>
+        <a href="https://github.com/mastervash/rtk-dashboard#install">Install</a>
+        <a href="https://github.com/mastervash/rtk-dashboard#docker">Docker</a>
+      </div>
+    </header>
+
+    <section class="carousel" aria-roledescription="carousel" aria-label="rtkdash screenshots">
+      <div class="frame">
+        <div class="track" id="track" tabindex="0" aria-live="polite"></div>
+
+        <button class="nav prev" id="prev" aria-label="Previous screenshot">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+        </button>
+        <button class="nav next" id="next" aria-label="Next screenshot">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+        </button>
+
+        <div class="progress" id="progress"></div>
+      </div>
+
+      <div class="controls">
+        <p class="caption" id="caption"></p>
+        <div class="dots" id="dots" role="tablist" aria-label="Choose a screenshot"></div>
+      </div>
+    </section>
+
+    <footer>
+      Screenshots are generated from a synthetic database (<code>scripts/seed-demo.mjs</code>) and a
+      stand-in rtk binary (<code>scripts/fake-rtk.mjs</code>), so no real paths, projects, or
+      commands appear in any of them.
+    </footer>
+
+    <script>
+      const SLIDES = [
+        ['screenshots/01-overview.png', 'Overview', 'KPIs, tokens saved per day with a savings-rate overlay, command volume, savings by subcommand, and top projects.'],
+        ['screenshots/02-history.png', 'History', 'Paginated, sortable, searchable command log. Expand a row for the original vs. rewritten command and the token math.'],
+        ['screenshots/06-discover.png', 'Discover', 'Commands that ran raw when rtk already had a filter for them, ranked by saveable tokens — plus commands rtk has no filter for yet.'],
+        ['screenshots/03-live.png', 'Live', 'Server-sent-events feed of commands as rtk records them, with a running total for the session.'],
+        ['screenshots/04-tools.png', 'Tools', 'Runs allowlisted rtk subcommands. Arguments are passed as argv and anything outside the allowlist is rejected outright.'],
+        ['screenshots/05-config.png', 'Config', 'Edits config.toml and filters.toml with live TOML validation and a timestamped backup on every save.'],
+      ];
+
+      const AUTOPLAY_MS = 6000;
+
+      const track = document.getElementById('track');
+      const dots = document.getElementById('dots');
+      const caption = document.getElementById('caption');
+      const progress = document.getElementById('progress');
+
+      SLIDES.forEach(([src, title], i) => {
+        const slide = document.createElement('div');
+        slide.className = 'slide';
+        slide.setAttribute('role', 'tabpanel');
+        slide.setAttribute('aria-label', `${i + 1} of ${SLIDES.length}: ${title}`);
+
+        const img = document.createElement('img');
+        img.src = src;
+        img.alt = `rtkdash ${title} view`;
+        // Only the first slide blocks paint; the rest stream in behind it.
+        img.loading = i === 0 ? 'eager' : 'lazy';
+        img.decoding = 'async';
+        slide.append(img);
+        track.append(slide);
+
+        const dot = document.createElement('button');
+        dot.className = 'dot';
+        dot.type = 'button';
+        dot.setAttribute('role', 'tab');
+        dot.setAttribute('aria-label', title);
+        dot.addEventListener('click', () => {
+          go(i);
+          pause();
+        });
+        dots.append(dot);
+      });
+
+      const playToggle = document.createElement('button');
+      playToggle.className = 'playToggle';
+      playToggle.type = 'button';
+      dots.append(playToggle);
+
+      let index = 0;
+      let playing = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      let timer = null;
+      let started = 0;
+
+      function render() {
+        caption.innerHTML = `<b>${SLIDES[index][1]}</b> — ${SLIDES[index][2]}`;
+        [...dots.querySelectorAll('.dot')].forEach((dot, i) =>
+          dot.setAttribute('aria-current', String(i === index))
+        );
+        playToggle.textContent = playing ? 'Pause' : 'Play';
+        playToggle.setAttribute('aria-label', playing ? 'Pause slideshow' : 'Play slideshow');
+      }
+
+      function go(next) {
+        index = (next + SLIDES.length) % SLIDES.length;
+        track.scrollTo({ left: index * track.clientWidth, behavior: 'smooth' });
+        render();
+      }
+
+      function play() {
+        playing = true;
+        started = performance.now();
+        render();
+      }
+
+      function pause() {
+        playing = false;
+        progress.style.width = '0';
+        render();
+      }
+
+      playToggle.addEventListener('click', () => (playing ? pause() : play()));
+
+      // Drive autoplay and the progress bar from one rAF loop so the bar always
+      // reflects the real time remaining, even after a tab is backgrounded.
+      function tick(now) {
+        if (playing) {
+          const elapsed = now - started;
+          progress.style.width = `${Math.min(elapsed / AUTOPLAY_MS, 1) * 100}%`;
+          if (elapsed >= AUTOPLAY_MS) {
+            started = now;
+            go(index + 1);
+          }
+        }
+        timer = requestAnimationFrame(tick);
+      }
+
+      document.getElementById('prev').addEventListener('click', () => {
+        go(index - 1);
+        pause();
+      });
+      document.getElementById('next').addEventListener('click', () => {
+        go(index + 1);
+        pause();
+      });
+
+      track.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowLeft') {
+          go(index - 1);
+          pause();
+        } else if (event.key === 'ArrowRight') {
+          go(index + 1);
+          pause();
+        }
+      });
+
+      // Manual scrolling (swipe, trackpad) should win over autoplay.
+      let scrollDebounce;
+      track.addEventListener('scroll', () => {
+        clearTimeout(scrollDebounce);
+        scrollDebounce = setTimeout(() => {
+          const next = Math.round(track.scrollLeft / track.clientWidth);
+          if (next !== index) {
+            index = next;
+            render();
+            pause();
+          }
+        }, 120);
+      });
+
+      const frame = document.querySelector('.frame');
+      frame.addEventListener('pointerenter', () => {
+        if (playing) {
+          playing = false;
+          progress.style.width = '0';
+          frame.dataset.resume = '1';
+        }
+      });
+      frame.addEventListener('pointerleave', () => {
+        if (frame.dataset.resume === '1') {
+          delete frame.dataset.resume;
+          play();
+        }
+      });
+
+      // Keep the current slide centered when the viewport changes width.
+      window.addEventListener('resize', () => {
+        track.scrollTo({ left: index * track.clientWidth, behavior: 'auto' });
+      });
+
+      render();
+      if (playing) started = performance.now();
+      timer = requestAnimationFrame(tick);
+    </script>
+  </body>
+</html>
